@@ -12,7 +12,9 @@
 
 #define MAX_EVENTS 32
 #define FILENAME_SIZE 1024
+#define DUMPSIZE (4096 * 4)
 
+// char mountinfo_dump[ DUMPSIZE ];
 static volatile bool quit = false;
 
 void sigint_handler( int x ) {
@@ -34,6 +36,7 @@ int main( void ) {
    struct epoll_event events[MAX_EVENTS];
    struct libmnt_monitor * mn = NULL;
    const char * filename = NULL;
+   int event_count = 0;
 
    printf( "Initing mount monitor\n" );
 
@@ -59,7 +62,8 @@ int main( void ) {
       for ( int i = 0; i < nfds; i++) {
          int mn_type;
          assert( events[i].data.fd == mn_fd );
-         printf( "Received event\n" );
+         event_count++;
+         printf( "Received event %d\n", event_count );
          r = mnt_monitor_next_change( mn, &filename, &mn_type);
          if( r < 0 ){
             perror( "mnt_monitor_next_change" );
@@ -71,6 +75,8 @@ int main( void ) {
                printf( " filename: ", filename );
             }
             printf( " type: %d\n", mn_type );
+            printf( "Dumping mountinfo\n" );
+            system( "cat /proc/self/mountinfo && echo '-----------------  END OF DUMP -----------------' 2>&1 | tee -a /tmp/mountmon.log" );
          }
       }
    }
