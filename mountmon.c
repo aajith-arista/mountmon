@@ -11,6 +11,7 @@
 #include <sys/epoll.h>
 
 #define MAX_EVENTS 32
+#define FILENAME_SIZE 1024
 
 static volatile bool quit = false;
 
@@ -32,6 +33,7 @@ int main( void ) {
    int nfds, mn_fd, epoll_fd,  r;
    struct epoll_event events[MAX_EVENTS];
    struct libmnt_monitor * mn = NULL;
+   const char * filename = NULL;
 
    printf( "Initing mount monitor\n" );
 
@@ -55,7 +57,21 @@ int main( void ) {
    while( !quit ) {
       nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
       for ( int i = 0; i < nfds; i++) {
-	 assert( events[i].data.fd == mn_fd );
+         int mn_type;
+         assert( events[i].data.fd == mn_fd );
+         printf( "Received event\n" );
+         r = mnt_monitor_next_change( mn, &filename, &mn_type);
+         if( r < 0 ){
+            perror( "mnt_monitor_next_change" );
+         } else if( r ) {
+            printf( "No change" );
+         } else {
+            printf( "Change:" );
+            if( filename ) {
+               printf( " filename: ", filename );
+            }
+            printf( " type: %d\n", mn_type );
+         }
       }
    }
 
